@@ -22,14 +22,14 @@ char const* const VERTEX_SHADER_SOURCE =
     "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
     "void main() {\n"
-    "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+    "    gl_Position = vec4(aPos, 1.0);\n"
     "}\n";
 
 char const* const FRAGMENT_SHADER_SOURCE =
     "#version 330 core\n"
     "out vec4 FragColor;\n"
     "void main() {\n"
-    "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+    "    FragColor = vec4(0.5, 0.0, 0.5, 1.0);\n"
     "}\n";
 
 int checkCompileShader(char const* const* source, GLenum shaderType) {
@@ -105,29 +105,42 @@ int main() {
 
     // opengl normalised coords
     // clang-format off
-    float triangle[] = {
-        -0.5f , -0.5f , 0.0f,
-        0.5f  , -0.5f , 0.0f,
-        0.0f  , 0.5f  , 0.0f,
+    float rectangle[] = {
+        0.5f  , 0.5f  , 0.0f , // top-right
+        0.5f  , -0.5f , 0.0f , // bottom-right
+        -0.5f , 0.5f  , 0.0f , // top-left
+        -0.5f , -0.5f , 0.0f , // bottom-left
+    };
+
+    GLuint indices[] = {
+        0, 1, 3,
+        0, 2, 3,
     };
     // clang-format on
 
-    GLuint VAO; // vertex array object
+    GLuint VAO;  // vertex array object
     glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
 
-    GLuint VBO; // vertex buffer object
+    GLuint VBO;  // vertex buffer object
     glGenBuffers(1, &VBO);
 
-    glBindVertexArray(VAO);
+    GLuint EBO;  // element buffer object
+    glGenBuffers(1, &EBO);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+                 GL_STATIC_DRAW);
 
     // 0. copy triangle in gpu memory
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(rectangle), rectangle, GL_STATIC_DRAW);
 
     // 1. setup inputs (attributes) for vertex shader
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(triangle[0]), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(rectangle[0]), (void*)0);
     glEnableVertexAttribArray(0);
 
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);  // GL_LINE to draw wireframe
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
 
@@ -136,7 +149,7 @@ int main() {
 
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, sizeof(indices), GL_UNSIGNED_INT, NULL);
 
         glfwPollEvents();
         glfwSwapBuffers(window);
