@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 
 #include "../include/glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -28,15 +29,9 @@ char const* const VERTEX_SHADER_SOURCE =
 char const* const FRAGMENT_SHADER_SOURCE_PURPLE =
     "#version 330 core\n"
     "out vec4 FragColor;\n"
+    "uniform vec4 ourColor;\n"
     "void main() {\n"
-    "    FragColor = vec4(0.5, 0.0, 0.5, 1.0);\n"
-    "}\n";
-
-char const* const FRAGMENT_SHADER_SOURCE_YELLOW =
-    "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main() {\n"
-    "    FragColor = vec4(0.82, 0.92, 0.20, 1.0);\n"
+    "    FragColor = ourColor;\n"
     "}\n";
 
 int checkCompileShader(char const* const* source, GLenum shaderType) {
@@ -92,9 +87,6 @@ int main() {
     GLuint fragmentShaderPurple =
         checkCompileShader(&FRAGMENT_SHADER_SOURCE_PURPLE, GL_FRAGMENT_SHADER);
 
-    GLuint fragmentShaderYellow =
-        checkCompileShader(&FRAGMENT_SHADER_SOURCE_YELLOW, GL_FRAGMENT_SHADER);
-
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShaderPurple);
@@ -110,24 +102,8 @@ int main() {
         }
     }
 
-    GLuint shaderProgram2 = glCreateProgram();
-    glAttachShader(shaderProgram2, vertexShader);
-    glAttachShader(shaderProgram2, fragmentShaderYellow);
-    glLinkProgram(shaderProgram2);
-
-    {
-        int success;
-        glGetProgramiv(shaderProgram2, GL_LINK_STATUS, &success);
-        if (!success) {
-            char buf[512];
-            glGetProgramInfoLog(shaderProgram2, sizeof(buf), NULL, buf);
-            ERROR("shader program link: %s", buf);
-        }
-    }
-
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShaderPurple);
-    glDeleteShader(fragmentShaderYellow);
 
     // opengl normalised coords
     // clang-format off
@@ -182,8 +158,13 @@ int main() {
     glEnableVertexAttribArray(0);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);  // GL_LINE to draw wireframe
+    auto loc = glGetUniformLocation(shaderProgram, "ourColor");
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
+
+        glUseProgram(shaderProgram);
+        auto green = (sin(glfwGetTime()) / 2.0f) + 0.5f;
+        glUniform4f(loc, 0.0, green, 0, 0);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -192,7 +173,6 @@ int main() {
         glBindVertexArray(VAO1);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        glUseProgram(shaderProgram2);
         glBindVertexArray(VAO2);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
